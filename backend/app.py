@@ -15,18 +15,11 @@ import uuid
 app = Flask(__name__)
 
 # CORS Configuration
-allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://easyprint-backend.onrender.com").split(',')
+allowed_origins_str = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins = allowed_origins_str.split(',')
+print(f"CORS allowed origins: {allowed_origins}") # For debugging
 
-CORS(app, resources={
-    r"/api/*": {
-        "origins": allowed_origins,
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    },
-    r"/pfp/*": {"origins": "*"},
-    r"/processed/*": {"origins": "*"}
-})
+CORS(app, origins=allowed_origins, supports_credentials=True)
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(APP_ROOT, 'uploads')
