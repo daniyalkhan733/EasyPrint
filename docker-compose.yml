@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_ENV=production
+      - PORT=5001
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/processed:/app/processed
+      - ./backend/pfp:/app/pfp
+      - ./backend/db.json:/app/db.json
+      - ./backend/users.json:/app/users.json
+      - ./backend/shops.json:/app/shops.json
+      - ./backend/wallets.json:/app/wallets.json
+    networks:
+      - easyprint-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:5001
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5001
+    depends_on:
+      - backend
+    networks:
+      - easyprint-network
+
+networks:
+  easyprint-network:
+    driver: bridge

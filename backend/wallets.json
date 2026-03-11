@@ -1,0 +1,71 @@
+{
+    "737153ff-20e4-423b-9703-3b488f787a0a": {
+        "balance": 29.0,
+        "transactions": [
+            {
+                "transaction_id": "txn_32c1850ebfbe",
+                "user_id": "737153ff-20e4-423b-9703-3b488f787a0a",
+                "type": "topup",
+                "status": "success",
+                "amount_inr": 20.0,
+                "coins_credited": 20.0,
+                "conversion_rate": "1 INR = 1 EP-Coin",
+                "merchant_upi_id": "easyprint@upi",
+                "created_at": 1773132152,
+                "expires_at": 1773132452,
+                "updated_at": 1773132176,
+                "completed_at": 1773132176
+            },
+            {
+                "transaction_id": "refund_4c75e9200ea3",
+                "user_id": "737153ff-20e4-423b-9703-3b488f787a0a",
+                "type": "refund",
+                "status": "success",
+                "amount_inr": 0,
+                "coins_credited": 5,
+                "order_id": "order_1773132860",
+                "reason": "Order cancelled",
+                "created_at": 1773132880,
+                "updated_at": 1773132880
+            },
+            {
+                "transaction_id": "refund_6359f3c7f34a",
+                "user_id": "737153ff-20e4-423b-9703-3b488f787a0a",
+                "type": "refund",
+                "status": "success",
+                "amount_inr": 0,
+                "coins_credited": 10,
+                "order_id": "order_1773132928",
+                "reason": "Order cancelled by shop: Printer not working",
+                "created_at": 1773133374,
+                "updated_at": 1773133374
+            },
+            {
+                "transaction_id": "refund_08a5021d66cb",
+                "user_id": "737153ff-20e4-423b-9703-3b488f787a0a",
+                "type": "refund",
+                "status": "success",
+                "amount_inr": 0,
+                "coins_credited": 5,
+                "order_id": "order_1773133602",
+                "reason": "Order cancelled by shop: Too busy - cannot fulfill",
+                "created_at": 1773134146,
+                "updated_at": 1773134146
+            },
+            {
+                "transaction_id": "txn_678af7b552e3",
+                "user_id": "737153ff-20e4-423b-9703-3b488f787a0a",
+                "type": "topup",
+                "status": "success",
+                "amount_inr": 20.0,
+                "coins_credited": 20.0,
+                "conversion_rate": "1 INR = 1 EP-Coin",
+                "merchant_upi_id": "easyprint@upi",
+                "created_at": 1773134786,
+                "expires_at": 1773135086,
+                "updated_at": 1773134790,
+                "completed_at": 1773134790
+            }
+        ]
+    }
+}

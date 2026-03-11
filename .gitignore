@@ -1,0 +1,61 @@
+# Environment variables - DO NOT COMMIT THIS FILE
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Application specific
+uploads/
+processed/
+*.pdf
+*.docx
+*.jpg
+*.png
+*.jpeg
+
+# Database
+db.json
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+
+# Misc
+*.bak
+*.tmp
