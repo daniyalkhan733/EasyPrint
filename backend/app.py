@@ -14,10 +14,12 @@ import uuid
 
 app = Flask(__name__)
 
-# CORS Configuration - Allow specific origins with credentials
+# CORS Configuration
+allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://easyprint-backend.onrender.com").split(',')
+
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+        "origins": allowed_origins,
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
