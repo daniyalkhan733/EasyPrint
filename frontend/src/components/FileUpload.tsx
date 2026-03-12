@@ -21,7 +21,9 @@ import {
   ChevronUp,
   Info,
   Settings2,
-  Receipt
+  Receipt,
+  Clock,
+  Zap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
@@ -75,6 +77,8 @@ interface SelectedShop {
   profile_photo: string;
   isLive: boolean;
 }
+
+type PaymentMethod = 'normal' | 'priority';
 
 // Default pricing (will be overridden by shop pricing)
 const DEFAULT_PRICING: ShopPricing = {
@@ -130,6 +134,7 @@ const FileUpload = () => {
   const [pricing, setPricing] = useState<ShopPricing>(DEFAULT_PRICING);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [selectedShop, setSelectedShop] = useState<SelectedShop | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('normal');
 
   // Fetch pricing from selected shop
   useEffect(() => {
@@ -172,11 +177,10 @@ const FileUpload = () => {
 
     // Determine total pages to print
     let pagesToPrint: number[];
-    if (config.pageSelection === 'all') {
+    if (config.pageSelection === 'all' || !config.customPages) {
       pagesToPrint = Array.from({ length: pageCount }, (_, i) => i + 1);
     } else {
       pagesToPrint = parsePageRange(config.customPages, pageCount);
-      if (pagesToPrint.length === 0) pagesToPrint = Array.from({ length: pageCount }, (_, i) => i + 1);
     }
 
     const totalPagesToPrint = pagesToPrint.length;
@@ -186,23 +190,23 @@ const FileUpload = () => {
 
     if (config.printMode === 'bw') {
       bwPages = totalPagesToPrint;
-      colorPagesCount = 0;
     } else if (config.printMode === 'color') {
-      bwPages = 0;
       colorPagesCount = totalPagesToPrint;
-    } else {
-      // Mixed mode - parse which pages are color
+    } else { // mixed mode
       const colorPageNumbers = parsePageRange(config.colorPages, pageCount);
       colorPagesCount = pagesToPrint.filter(p => colorPageNumbers.includes(p)).length;
       bwPages = totalPagesToPrint - colorPagesCount;
     }
 
-    const bwCost = bwPages * pricing.bw * config.copies;
-    const colorCost = colorPagesCount * pricing.color * config.copies;
+    const totalBwPages = bwPages * config.copies;
+    const totalColorPages = colorPagesCount * config.copies;
+
+    const bwCost = totalBwPages * pricing.bw;
+    const colorCost = totalColorPages * pricing.color;
 
     return {
-      bwPages: bwPages * config.copies,
-      colorPages: colorPagesCount * config.copies,
+      bwPages: totalBwPages,
+      colorPages: totalColorPages,
       bwCost,
       colorCost,
       totalCost: bwCost + colorCost,
@@ -234,6 +238,11 @@ const FileUpload = () => {
       totalCost,
     };
   }, [uploadedFiles, calculateFileCost]);
+
+  const finalCost = useMemo(() => {
+    const priorityFee = paymentMethod === 'priority' ? costBreakdown.totalCost * 0.2 : 0;
+    return costBreakdown.totalCost + priorityFee;
+  }, [costBreakdown.totalCost, paymentMethod]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const newFilesPromises = acceptedFiles.map(async (file): Promise<UploadedFile> => {
@@ -343,6 +352,7 @@ const FileUpload = () => {
 
     formData.append('config', JSON.stringify(configs));
     formData.append('shopId', selectedShop.shop_id);
+    formData.append('priority', paymentMethod === 'priority' ? 'true' : 'false');
 
     if (studentAuth) {
       formData.append('userId', studentAuth.user_id);
@@ -740,7 +750,7 @@ const FileUpload = () => {
                   </div>
                   {studentAuth && walletBalance !== null && (
                     <div className={`text-sm px-3 py-1 rounded-full ${
-                      walletBalance >= costBreakdown.totalCost 
+                      walletBalance >= finalCost 
                         ? 'bg-green-500/20 text-green-400' 
                         : 'bg-red-500/20 text-red-400'
                     }`}>
@@ -766,7 +776,75 @@ const FileUpload = () => {
                     <div className="text-2xl font-bold text-yellow-400 flex items-center justify-center gap-1">
                       <Coins size={20} /> {costBreakdown.totalCost.toFixed(2)}
                     </div>
-                    <div className="text-xs text-yellow-400/80">Total Cost</div>
+                    <div className="text-xs text-yellow-400/80">Subtotal</div>
+                  </div>
+                </div>
+
+                {/* Priority Pay Section */}
+                <div className="my-6">
+                  <h4 className="font-semibold text-white mb-3 text-center">Choose Your Speed</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Normal Pay */}
+                    <div
+                      onClick={() => setPaymentMethod('normal')}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        paymentMethod === 'normal'
+                          ? 'border-blue-500 bg-blue-500/20'
+                          : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <h5 className="font-bold text-white">Normal Pay</h5>
+                        <div className="flex items-center gap-1 text-sm text-gray-400">
+                          <Clock size={14} />
+                          <span>Approx. 2-3 hours</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-300 mb-3">Standard printing queue. Good for non-urgent documents.</p>
+                      <div className="text-right font-bold text-lg text-yellow-400">
+                        <Coins size={16} className="inline mr-1" />
+                        {costBreakdown.totalCost.toFixed(2)}
+                      </div>
+                    </div>
+
+                    {/* Priority Pay */}
+                    <div
+                      onClick={() => setPaymentMethod('priority')}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        paymentMethod === 'priority'
+                          ? 'border-green-500 bg-green-500/20'
+                          : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <h5 className="font-bold text-white flex items-center gap-2">
+                          <Zap size={16} className="text-green-400" />
+                          Priority Pay
+                        </h5>
+                        <div className="flex items-center gap-1 text-sm text-green-400">
+                          <Clock size={14} />
+                          <span>Approx. 30-45 mins</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-300 mb-1">Your order gets moved to the front of the queue.</p>
+                      <div className="text-right">
+                        <span className="text-xs text-gray-400 line-through mr-2">{costBreakdown.totalCost.toFixed(2)}</span>
+                        <span className="font-bold text-lg text-green-400">
+                          <Coins size={16} className="inline mr-1" />
+                          {(costBreakdown.totalCost * 1.2).toFixed(2)}
+                        </span>
+                        <p className="text-xs text-green-400/80 text-right">+20% Priority Fee</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-600 pt-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-lg font-semibold text-white">Total Cost:</span>
+                    <span className="text-2xl font-bold text-yellow-400 flex items-center gap-2">
+                      <Coins size={24} /> {finalCost.toFixed(2)}
+                    </span>
                   </div>
                 </div>
 
@@ -775,14 +853,14 @@ const FileUpload = () => {
                     <span className="font-medium">Pricing ({selectedShop.shop_name}):</span> B&W {pricing.bw} coin/page • Color {pricing.color} coins/page
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    {studentAuth && walletBalance !== null && walletBalance < costBreakdown.totalCost && (
+                    {studentAuth && walletBalance !== null && walletBalance < finalCost && (
                       <p className="text-red-400 text-sm">
-                        Insufficient balance! Need {(costBreakdown.totalCost - walletBalance).toFixed(2)} more coins
+                        Insufficient balance! Need {(finalCost - walletBalance).toFixed(2)} more coins
                       </p>
                     )}
                     <button
                       onClick={handleSubmit}
-                      disabled={isLoading || (studentAuth !== null && walletBalance !== null && walletBalance < costBreakdown.totalCost)}
+                      disabled={isLoading || (studentAuth !== null && walletBalance !== null && walletBalance < finalCost)}
                       className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold py-3 px-8 rounded-lg transition-all flex items-center justify-center gap-2 disabled:from-gray-600 disabled:to-gray-500 disabled:cursor-not-allowed shadow-lg"
                     >
                       {isLoading ? (

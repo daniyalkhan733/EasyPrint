@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Clock, FileText, Printer, Truck, Package, ChevronDown, ChevronUp, Filter, Archive, LogOut, User, IndianRupee, ShoppingBag, MapPin, Store, Coins, Palette, X, AlertTriangle, Layers, Scissors } from 'lucide-react';
+import { CheckCircle, Clock, FileText, Printer, Truck, Package, ChevronDown, ChevronUp, Filter, Archive, LogOut, User, IndianRupee, ShoppingBag, MapPin, Store, Coins, Palette, X, AlertTriangle, Layers, Scissors, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { API_ENDPOINTS } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -37,6 +37,8 @@ interface Order {
   config?: FileConfig[];
   student_name: string;
   order_time: number;
+  priority?: boolean;
+  total_cost?: number;
 }
 
 // Helper to get PDF filename from files array (handles both old and new format)
@@ -225,19 +227,10 @@ const ShopDashboard = ({ shopId }: ShopDashboardProps) => {
   // Calculate stats
   const totalOrders = orders.length;
   const totalEarnings = completedOrders.reduce((acc, order) => {
-    let orderTotal = 0;
-    const orderConfig = getOrderConfig(order);
-    orderConfig.forEach(file => {
-      const bwPrice = shopInfo?.pricing.bw || 1;
-      const colorPrice = shopInfo?.pricing.color || 5;
-      // Use estimatedCost if available, otherwise calculate
-      if (file.estimatedCost) {
-        orderTotal += file.estimatedCost;
-      } else {
-        orderTotal += file.copies * bwPrice * 10; // Assuming 10 pages avg
-      }
-    });
-    return acc + orderTotal;
+    if (order.status === 'Completed' && order.total_cost) {
+      return acc + order.total_cost;
+    }
+    return acc;
   }, 0);
 
   // Apply filters
@@ -583,12 +576,26 @@ const ShopDashboard = ({ shopId }: ShopDashboardProps) => {
                             <User size={12} />
                             {order.student_name}
                           </p>
-                          <p className="text-xs text-gray-500 flex items-center gap-1">
-                            <Clock size={12} />
-                            {new Date(order.order_time * 1000).toLocaleString()}
-                          </p>
+                          <div className="flex items-center gap-4">
+                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                              <Clock size={12} />
+                              {new Date(order.order_time * 1000).toLocaleString()}
+                            </p>
+                            {order.total_cost !== undefined && (
+                              <p className="text-xs text-yellow-400 flex items-center gap-1 font-semibold">
+                                <Coins size={12} />
+                                {order.total_cost.toFixed(2)}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         <div className="flex flex-col items-end gap-2 ml-3">
+                          {order.priority && (
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-bold">
+                              <Zap size={12} />
+                              Priority
+                            </div>
+                          )}
                           <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${
                             order.status === 'Pending' ? 'bg-yellow-500/10 border border-yellow-500/30' :
                             order.status === 'In Progress' ? 'bg-blue-500/10 border border-blue-500/30' :
@@ -622,7 +629,7 @@ const ShopDashboard = ({ shopId }: ShopDashboardProps) => {
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b border-gray-700">
                     <div className="flex-1">
                       <h2 className="text-3xl font-bold mb-2 text-purple-300 break-all">{selectedOrder.order_id}</h2>
-                      <div className="flex flex-wrap items-center gap-2 text-sm text-gray-400">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-400">
                         <span className="flex items-center gap-1">
                           <FileText size={14} />
                           {selectedOrder.files.length} file(s)
@@ -632,7 +639,24 @@ const ShopDashboard = ({ shopId }: ShopDashboardProps) => {
                           <User size={14} />
                           {selectedOrder.student_name}
                         </span>
+                        {selectedOrder.priority && (
+                          <>
+                            <span className="text-gray-600">•</span>
+                            <span className="flex items-center gap-1.5 font-bold text-green-400">
+                              <Zap size={14} />
+                              Priority Order
+                            </span>
+                          </>
+                        )}
                       </div>
+                      {selectedOrder.total_cost !== undefined && (
+                        <div className="mt-3">
+                          <span className="text-lg font-bold text-yellow-400 flex items-center gap-2">
+                            <Coins size={18} />
+                            Total Paid: {selectedOrder.total_cost.toFixed(2)} EP-Coins
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Status Controls */}

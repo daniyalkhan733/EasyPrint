@@ -1,6 +1,6 @@
 {
     "737153ff-20e4-423b-9703-3b488f787a0a": {
-        "balance": 29.0,
+        "balance": 12.0,
         "transactions": [
             {
                 "transaction_id": "txn_32c1850ebfbe",
@@ -65,6 +65,20 @@
                 "expires_at": 1773135086,
                 "updated_at": 1773134790,
                 "completed_at": 1773134790
+            },
+            {
+                "transaction_id": "txn_d2a82f29a1d8",
+                "user_id": "737153ff-20e4-423b-9703-3b488f787a0a",
+                "type": "topup",
+                "status": "success",
+                "amount_inr": 100.0,
+                "coins_credited": 100.0,
+                "conversion_rate": "1 INR = 1 EP-Coin",
+                "merchant_upi_id": "easyprint@upi",
+                "created_at": 1773202890,
+                "expires_at": 1773203190,
+                "updated_at": 1773202891,
+                "completed_at": 1773202891
             }
         ]
     }

@@ -468,6 +468,9 @@ def create_order():
     # Shop selection
     shop_id = request.form.get('shopId')
     
+    # Priority selection
+    is_priority = request.form.get('priority') == 'true'
+
     if not shop_id:
         return jsonify({"error": "No shop selected"}), 400
 
@@ -481,6 +484,7 @@ def create_order():
     order_id = "order_" + str(int(time.time()))
 
     # --- Wallet & Cost Calculation ---
+    total_cost = 0
     if user_id:
         # Get selected shop pricing
         shops = read_shops()
@@ -489,11 +493,11 @@ def create_order():
             
         shop_pricing = shops[shop_id].get('pricing', {"bw": 1, "color": 5})
         
-        total_cost = 0
+        subtotal = 0
         for file_config in config:
             # Use pre-calculated cost from frontend if available
             if 'estimatedCost' in file_config:
-                total_cost += file_config['estimatedCost']
+                subtotal += file_config['estimatedCost']
             else:
                 # Fallback: calculate based on bwPages and colorPagesCount
                 bw_pages = file_config.get('bwPages', 0)
@@ -503,9 +507,12 @@ def create_order():
                 # If new format not available, use old calculation
                 if bw_pages == 0 and color_pages == 0:
                     page_count = file_config.get('pageCount', 0)
-                    total_cost += page_count * shop_pricing['bw'] * copies
+                    subtotal += page_count * shop_pricing['bw'] * copies
                 else:
-                    total_cost += (bw_pages * shop_pricing['bw']) + (color_pages * shop_pricing['color'])
+                    subtotal += (bw_pages * shop_pricing['bw']) + (color_pages * shop_pricing['color'])
+        
+        priority_fee = subtotal * 0.2 if is_priority else 0
+        total_cost = subtotal + priority_fee
 
         wallets = read_wallets()
         wallet = get_or_create_wallet(wallets, user_id)
@@ -565,7 +572,9 @@ def create_order():
         "files": saved_files,
         "status": "Pending",
         "order_time": time.time(),
-        "shop_id": shop_id  # Associate order with specific shop
+        "shop_id": shop_id,  # Associate order with specific shop
+        "priority": is_priority,
+        "total_cost": total_cost
     }
     if user_id:
         users = read_users()
@@ -590,6 +599,10 @@ def shop_view():
     orders = read_db()
     # Filter orders by shop_id
     shop_orders = [order for order in orders.values() if order.get('shop_id') == shop_id]
+    
+    # Sort orders: priority orders first, then by time
+    shop_orders.sort(key=lambda o: (o.get('priority', False), o.get('order_time', 0)), reverse=True)
+    
     return jsonify(shop_orders), 200
 
 @app.route('/api/orders/<order_id>/status', methods=['PUT'])
@@ -675,27 +688,7 @@ def cancel_order(order_id):
     # Refund coins for logged-in users
     refund_amount = 0
     if user_id:
-        # Calculate refund amount
-        config = order.get('files', [])
-        shops = read_shops()
-        shop_id = order.get('shop_id')
-        
-        if shop_id and shop_id in shops:
-            shop_pricing = shops[shop_id].get('pricing', {"bw": 1, "color": 5})
-        else:
-            shop_pricing = {"bw": 1, "color": 5}
-        
-        for file_config in config:
-            if isinstance(file_config, dict):
-                file_data = file_config.get('config', file_config)
-                if 'estimatedCost' in file_data:
-                    refund_amount += file_data['estimatedCost']
-                else:
-                    # Fallback calculation
-                    bw_pages = file_data.get('bwPages', 0)
-                    color_pages = file_data.get('colorPagesCount', 0)
-                    copies = file_data.get('copies', 1)
-                    refund_amount += (bw_pages * shop_pricing['bw'] + color_pages * shop_pricing['color']) * copies
+        refund_amount = order.get('total_cost', 0)
         
         # Refund to wallet
         if refund_amount > 0:
@@ -766,26 +759,7 @@ def cancel_order_shop(order_id):
     user_id = order.get('user_id')
     
     if user_id:
-        # Calculate refund amount
-        config = order.get('files', [])
-        shops = read_shops()
-        
-        if shop_id in shops:
-            shop_pricing = shops[shop_id].get('pricing', {"bw": 1, "color": 5})
-        else:
-            shop_pricing = {"bw": 1, "color": 5}
-        
-        for file_config in config:
-            if isinstance(file_config, dict):
-                file_data = file_config.get('config', file_config)
-                if 'estimatedCost' in file_data:
-                    refund_amount += file_data['estimatedCost']
-                else:
-                    # Fallback calculation
-                    bw_pages = file_data.get('bwPages', 0)
-                    color_pages = file_data.get('colorPagesCount', 0)
-                    copies = file_data.get('copies', 1)
-                    refund_amount += (bw_pages * shop_pricing['bw'] + color_pages * shop_pricing['color']) * copies
+        refund_amount = order.get('total_cost', 0)
         
         # Refund to wallet
         if refund_amount > 0:
